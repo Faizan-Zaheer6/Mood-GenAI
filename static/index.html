@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Mood Booster - Premium Emotional Companion</title>
+    <meta name="description"
+        content="Get personalized quotes, poetry, and mood boosts powered by advanced GenAI. Select your mood and language.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css?v=2">
+
+    <style>
+        .chat-log-container {
+            margin-top: 25px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            display: none;
+            /* Only shows when chat starts */
+        }
+
+        .chat-log-container::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .chat-log-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        .chat-bubble {
+            margin: 8px 0;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .chat-bubble.user {
+            background: rgba(118, 75, 162, 0.2);
+            border-right: 3px solid #764ba2;
+            text-align: right;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .chat-bubble.ai {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid #ff007f;
+            font-family: 'Playfair Display', serif;
+        }
+
+        .followup-section {
+            margin-top: 20px;
+            display: none;
+            /* Initially hidden until first generation */
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+    <div class="ambient-glow glow-3"></div>
+
+    <div class="container">
+        <div class="logo-container">
+            <div class="glow-logo">✨</div>
+        </div>
+        <h1 class="header">AI Mood Booster</h1>
+        <p class="subtitle">Transform your feelings into beautiful poetry and quotes</p>
+
+        <form id="moodForm">
+            <div class="form-group">
+                <label for="mood">How are you feeling today?</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🎭</span>
+                    <input type="text" id="mood" name="mood" placeholder="e.g., Nostalgic, Melancholy, Inspired"
+                        required />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="language">Preferred Language</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🌐</span>
+                    <input type="text" id="language" name="language" placeholder="e.g., Urdu, English, Hindi"
+                        required />
+                </div>
+            </div>
+
+            <button type="submit" id="submitBtn">
+                <span class="btn-text">Generate Boost</span>
+                <span class="btn-spark">⚡</span>
+            </button>
+        </form>
+
+        <div id="spinner" class="spinner-container">
+            <div class="double-bounce1"></div>
+            <div class="double-bounce2"></div>
+            <p class="loading-text">Weaving words for your soul...</p>
+        </div>
+
+        <div id="resultContainer" class="result-card">
+            <div class="quote-mark open-quote">“</div>
+            <blockquote id="quoteText">Your custom boost will appear here.</blockquote>
+            <div class="quote-mark close-quote">”</div>
+            <div class="author-area">
+                <span class="author-line"></span>
+                <cite id="authorName">AI Companion</cite>
+            </div>
+            <div class="badge-area">
+                <span id="detectedMoodBadge" class="mood-badge">Mood</span>
+            </div>
+        </div>
+
+        <div id="chatLog" class="chat-log-container"></div>
+
+        <div id="followupSection" class="followup-section">
+            <form id="followupForm">
+                <div class="form-group">
+                    <label for="followupQuery">Ask AI Buddy about this poem (Memory)</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🧠</span>
+                        <input type="text" id="followupQuery" placeholder="e.g., Explain this poem, change the tone..."
+                            required />
+                    </div>
+                </div>
+                <button type="submit" id="followupBtn"
+                    style="background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); border: none;">
+                    <span class="btn-text">Ask AI Buddy</span>
+                    <span class="btn-spark">✨</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('moodForm');
+        const followupForm = document.getElementById('followupForm');
+        const resultContainer = document.getElementById('resultContainer');
+        const chatLog = document.getElementById('chatLog');
+        const followupSection = document.getElementById('followupSection');
+
+        const quoteText = document.getElementById('quoteText');
+        const authorName = document.getElementById('authorName');
+        const detectedMoodBadge = document.getElementById('detectedMoodBadge');
+        const spinner = document.getElementById('spinner');
+        const button = document.getElementById('submitBtn');
+        const followupBtn = document.getElementById('followupBtn');
+
+        // Helper function to append messages cleanly into the Chat Log
+        function appendToChatLog(sender, text) {
+            chatLog.style.display = 'block';
+            const bubble = document.createElement('div');
+            bubble.classList.add('chat-bubble', sender);
+            bubble.innerHTML = `<strong>${sender === 'user' ? 'You' : 'AI'}:</strong> ${text}`;
+            chatLog.appendChild(bubble);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        // --- 1. Primary Poetry Generation Flow ---
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const mood = document.getElementById('mood').value;
+            const language = document.getElementById('language').value;
+            const payload = { mood, language };
+
+            spinner.style.display = 'block';
+            resultContainer.classList.remove('show');
+            button.disabled = true;
+
+            try {
+                const response = await fetch('/generate-quote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error('API Error');
+                const data = await response.json();
+
+                // Updating Main Card View
+                quoteText.textContent = data.content;
+                authorName.textContent = data.author_or_poet || "Anonymous";
+                detectedMoodBadge.textContent = data.mood_detected || mood;
+
+                // Mirroring into the persistent Chat Log Window
+                appendToChatLog('user', `Feeling ${mood} (Language: ${language})`);
+                appendToChatLog('ai', `${data.content} <br><small style="opacity:0.6;">— ${data.author_or_poet || "Anonymous"}</small>`);
+
+                setTimeout(() => {
+                    resultContainer.classList.add('show');
+                    followupSection.style.display = 'block'; // Activating memory input box
+                }, 100);
+
+            } catch (err) {
+                quoteText.textContent = 'Failed to connect. Please check your internet connection or API key.';
+                authorName.textContent = 'System Alert';
+                detectedMoodBadge.textContent = 'Error';
+                resultContainer.classList.add('show');
+            } finally {
+                spinner.style.display = 'none';
+                button.disabled = false;
+                document.getElementById('mood').value = ""; // Clearing input smoothly
+            }
+        });
+
+        // --- 2. NEW: Continuous Follow-up / Memory Flow ---
+        followupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const queryField = document.getElementById('followupQuery');
+            const queryText = queryField.value;
+
+            // Re-using the active language from the context or fallback
+            const currentLanguage = detectedMoodBadge.textContent === 'Error' ? 'English' : 'Urdu';
+            const payload = { mood: queryText, language: currentLanguage };
+
+            // UI Adjustments for processing
+            spinner.style.display = 'block';
+            followupBtn.disabled = true;
+
+            // Log User question immediately to chat display
+            appendToChatLog('user', queryText);
+            queryField.value = "";
+
+            try {
+                const response = await fetch('/generate-quote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error('API Error');
+                const data = await response.json();
+
+                // Dynamically update the premium view panel with the newest reply
+                quoteText.textContent = data.content;
+                authorName.textContent = data.author_or_poet || "System Memory";
+                detectedMoodBadge.textContent = data.mood_detected || "Discussion";
+
+                // Append AI explanation response into the scrollable logs
+                appendToChatLog('ai', data.content);
+
+            } catch (err) {
+                appendToChatLog('ai', "Error updating conversation thread. Check server logs.");
+            } finally {
+                spinner.style.display = 'none';
+                followupBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>
