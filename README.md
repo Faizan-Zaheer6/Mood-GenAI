@@ -128,6 +128,15 @@ Serves the web UI (`static/index.html`).
 
 > **Note:** Chat memory lives in process memory and resets when the server restarts. It is not shared across multiple server workers.
 
+## What's New
+
+### v1.1 — October 2026
+
+- Improved system-prompt guardrails for more accurate inappropriate-content filtering.
+- Added `.env.example` to help new contributors configure credentials quickly.
+- Refined response card styling in the frontend for better readability on mobile screens.
+- Minor cleanup of `ai_logic.py`: extracted prompt template into a dedicated constant for easier customisation.
+
 ## License
 
 No license file is included. Add one if you plan to open-source or distribute this project.
